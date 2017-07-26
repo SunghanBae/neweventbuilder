@@ -1,0 +1,2 @@
+This code is for building ion, beta hit events into root files for futher analysis.
+The base file is asic_packed AIDA files in root format. (Refer to asic_pack in github.com/SunghanBae/asic_pack)
