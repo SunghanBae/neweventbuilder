@@ -1,5 +1,5 @@
 #!/bin/bash
-#brips=1193
+brips=1193
 #eurica=1408
 aida=1208
 
@@ -12,7 +12,7 @@ do
 #        echo "$name.root exist"
 #else
 
-./newevent $aida $i
+./newevent $aida $i $brips
 #fi
 
 done

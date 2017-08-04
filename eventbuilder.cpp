@@ -26,7 +26,7 @@
 #include "Math/Vector3D.h"
 #include "Math/Vector4D.h"
 
-
+#include "BigRIPS_reco.h"
 #include "AIDA_packed.h"
 
 using namespace std;
@@ -34,29 +34,43 @@ using namespace std;
 int main( int argv, char* argc[]){
 
 	TString fin;
+	char bin[128];
 	char fi[128];
+//	char beami[128];
 	const int maxasic=196*2;
 	const int maxmult=32;	
 	const int maxpix =10000;
-	if(argv==4){
-		int mode=atoi(argc[3]);
+	int beamnum;
+	if(argv==5){
+		int mode=atoi(argc[4]);
 		if(mode==0){
 			string name=argc[1];
 			strcpy(fi,name.c_str());
 			//	sprintf(fi,"$AIDADIR/R%4d_%d_packed.root",mainnum,subnum);	
 			fin=argc[2];
+			beamnum=atoi(argc[3]);
 		}
 		else{std::cout<<"USAGE of name assigning mode: ./newevent inputname outputname 0"<<std::endl; return -1;}
-	}else if(argv==3){
+	}else if(argv==4){
 
 		int mainnum= atoi(argc[1]);
 		int subnum = atoi(argc[2]);
-		sprintf(fi,"$AIDADIR/R%4d_%d_packed.root",mainnum,subnum);	
-		fin=Form("$AIDADIR/R%4d_%d_packed_eventbuild.root",mainnum,subnum);
+		beamnum= atoi(argc[3]);
+//		sprintf(fi,"$AIDADIR/R%4d_%d_packed.root",mainnum,subnum);	
+//		fin=Form("$AIDADIR/R%4d_%d_packed_eventbuild.root",mainnum,subnum);
+		sprintf(fi,"$AIDADIR/R%4d_%d_tr_packed.root",mainnum,subnum);	
+		fin=Form("$AIDADIR/R%4d_%d_tr_packed_eventbuild.root",mainnum,subnum);
+		sprintf(bin,"$BigDIR/run%4d_recoPID.root",beamnum);
 
-	}else {std::cout<<"USAGE: ./newevent AIDARUN# AIDASUBRUN# "<<endl; return -1;}
+	}else {std::cout<<"USAGE: ./newevent AIDARUN# AIDASUBRUN# BigRIPSRUN# "<<endl; return -1;}
 
 	AIDA_packed aidapa(fi);
+	BigRIPS_reco beam(bin);
+
+	map<Long64_t,Long64_t> mtsb;
+	map<Long64_t,Long64_t>::iterator imtsb;
+	beam.GetTsEntry(mtsb);
+
 	std::cout<<"File output : "<<fin<<std::endl;
 
 	TFile* fo = new TFile(fin,"RECREATE");
@@ -72,7 +86,7 @@ int main( int argv, char* argc[]){
 	Int_t mulasic,multitot;
 	Int_t fire_flag[6][2],asicNo[maxasic],dssdNo[maxasic],multi[maxasic];
 	Int_t stripNo[maxasic][maxmult],adcData[maxasic][maxmult],rangeType[maxasic][maxmult];
-	Int_t hitX[6],hitY[6];
+	Int_t hitX[6],hitY[6],r1hitX[6],r1hitY[6];
 	Double_t EX[6],EY[6],X[6],Y[6];
 	Double_t adcE[maxasic][maxmult];
 	Double_t tempx[6],tempy[6];
@@ -96,6 +110,7 @@ int main( int argv, char* argc[]){
 	ion->Branch("stop_x",&stop_x,"stop_x/D");
 	ion->Branch("stop_y",&stop_y,"stop_y/D");
 	ion->Branch("stop_z",&stop_z,"stop_z/I");
+	ion->Branch("emptyz",&emptyz,"emptyz/I");
 	ion->Branch("goodness",&goodness,"goodness/I");
 
 	ion->Branch("fire_flag",fire_flag,"fire_flag[6][2]/I");
@@ -104,7 +119,9 @@ int main( int argv, char* argc[]){
 	ion->Branch("X",X,"X[6]/D");
 	ion->Branch("Y",Y,"Y[6]/D");
 	ion->Branch("hitX",hitX,"hitX[6]/I");
+	ion->Branch("r1hitX",r1hitX,"r1hitX[6]/I");
 	ion->Branch("hitY",hitY,"hitY[6]/I");
+	ion->Branch("r1hitY",r1hitY,"r1hitY[6]/I");
 
 	ion->Branch("asicNo",asicNo,"asicNo[mulasic]/I");
 	ion->Branch("dssdNo",dssdNo,"dssdNo[mulasic]/I");
@@ -208,7 +225,8 @@ int main( int argv, char* argc[]){
 	//----------------------------------------------------------------------------------------------//
 
 	std::cout<<"Start building ion events"<<std::endl;
-	Long64_t ion_w = 4000; //40us window between asic fired
+//	Long64_t ion_w = 4000; //40us window between asic fired
+	Long64_t ion_w = 10000; //40us window between asic fired
 	Long64_t beta_w = 4000; //40us window between asic fired
 	i=0;
 	premulasic=0;
@@ -244,7 +262,9 @@ int main( int argv, char* argc[]){
 				X[ii]=-1;
 				Y[ii]=-1;
 				hitX[ii]=0;
+				r1hitX[ii]=0;
 				hitY[ii]=0;
+				r1hitY[ii]=0;
 				tempx[ii]=0;
 				tempy[ii]=0;
 			}
@@ -265,15 +285,27 @@ int main( int argv, char* argc[]){
 
 
 			//Start veto looping for beta from ion input.
-			int iveto=i;
-			while( aidapa.extT0>=extTstart && aidapa.extT0*4 < extTstart*4 +20000 && iveto<nlist){
-				ifakemap=fakemap.find(iveto);
+			int iveto1=i;
+			int iveto2=i-1;
+
+			while( aidapa.extT0>=extTstart && aidapa.extT0*4 < extTstart*4 +20000 && iveto1<nlist){
+				ifakemap=fakemap.find(iveto1);
 				if(aidapa.ion_flag==0 && ifakemap==fakemap.end() ){
-					fakemap.insert(std::make_pair(iveto,1));
+					fakemap.insert(std::make_pair(iveto1,1));
 				}
-				iveto++;
-				if(iveto<nlist) aidapa.GetEntry(iveto);
+				iveto1++;
+				if(iveto1<nlist) aidapa.GetEntry(iveto1);
 			}
+			
+			while( aidapa.extT0*4>=extTstart*4-20000 && aidapa.extT0 < extTstart && iveto2<nlist && iveto2>-1){
+				ifakemap=fakemap.find(iveto2);
+				if(aidapa.ion_flag==0 && ifakemap==fakemap.end() ){
+					fakemap.insert(std::make_pair(iveto2,1));
+				}
+				iveto2--;
+				if(iveto2<nlist && iveto2>-1) aidapa.GetEntry(iveto2);
+			}
+			
 			aidapa.GetEntry(i);
 
 			//Start looping for an event	
@@ -334,11 +366,13 @@ int main( int argv, char* argc[]){
 						if(stripNo[ii][iii]<128 && stripNo[ii][iii]>-1){
 							EX[dssdNo[ii]]	  +=  adcE[ii][iii];
 							tempx[dssdNo[ii]] +=  stripNo[ii][iii]*adcE[ii][iii];
-							hitX[dssdNo[ii]]+=1;
+							hitX[dssdNo[ii]]  +=1;
+							if(rangeType[ii][iii]==1) {r1hitX[dssdNo[ii]]=1;}
 						}else if(stripNo[ii][iii]>127 && stripNo[ii][iii]<256){
 							EY[dssdNo[ii]]	  +=  adcE[ii][iii];
 							tempy[dssdNo[ii]] +=  (stripNo[ii][iii]-128)*adcE[ii][iii];
-							hitY[dssdNo[ii]]+=1;
+							hitY[dssdNo[ii]]  +=1;
+							if(rangeType[ii][iii]==1) {r1hitY[dssdNo[ii]]=1;}
 						}else {std::cout<<"The strip No is wrong"<<std::endl; return -1;}
 					}
 				}
@@ -351,15 +385,31 @@ int main( int argv, char* argc[]){
 			emptyz=-1;
 			for(ii=0;ii<6;ii++){
 				if( X[ii]>-1 || Y[ii]>-1)
+//				if(r1hitX[ii]>0 || r1hitY[ii]>0)
 				{
+					if(ii<5){
 					stop_z=ii;
-					if(X[ii]>-1) {stop_x=X[ii];}
-					if(Y[ii]>-1) {stop_y=Y[ii];}
+					if(X[ii]>-1)
+					//if(r1hitX[ii]>0)
+					{stop_x=X[ii];}
+					if(Y[ii]>-1) 
+					//if(r1hitY[ii]>0)
+					{stop_y=Y[ii];}
+					}else if(emptyz<0)
+					{
+					stop_z=ii;
+					if(X[ii]>-1){ stop_x=X[ii];}
+					if(Y[ii]>-1){ stop_y=Y[ii];}
+					}
+
 				}else if(emptyz<0){
 					emptyz=ii;
 				}
 			}
-			if(stop_z>emptyz && stop_z>-1 && stop_x>-1 && stop_y>-1) goodness=1;
+
+
+			//if((stop_z < emptyz || emptyz<0) && stop_z>-1 && stop_x>-1 && stop_y>-1) goodness=1;
+			if(stop_z>-1 && stop_x>-1 && stop_y>-1) goodness=1;
 			//			emptyz=0;
 			aidapa.GetEntry(ilast);
 			premulasic=mulasic;
@@ -390,13 +440,23 @@ int main( int argv, char* argc[]){
 		tstop=0;
 		extTstop=0;
 		testi=0;
+		Long64_t beamts1,beamts2;
 		while(i<nlist){
 			testi=aidapa.GetEntry(i);
 			if(testi==0){ cout<<"wrong entry input here "<<i<<"entry is not exist"<<endl; return -1;}
 
-			ifakemap=fakemap.find(i);		
+			ifakemap=fakemap.find(i);											//ionevent veto condition
+			
 
-			if(aidapa.ion_flag==0 && ifakemap==fakemap.end()){
+			if(aidapa.ion_flag==0 && ifakemap==fakemap.end()){								//ionevent veto condition
+			//if(aidapa.ion_flag==0){
+				
+				imtsb=mtsb.lower_bound(aidapa.extT0*4);									//beam veto condition
+				beamts1=imtsb->first;											//beam veto condition
+				imtsb--;												//beam veto condition
+				beamts2=imtsb->first;											//beam veto condition
+				if( beamts1  > (aidapa.extT0*4 +20000) && beamts2 < (aidapa.extT0*4-20000) ){				//beam veto condition
+						
 				//Initialize and reset the parameters
 				flag_pulser=0;
 				tstart=aidapa.t0;
@@ -445,7 +505,8 @@ int main( int argv, char* argc[]){
 				//hitpixel->clear();
 
 				//Start looping for an event	
-				while( aidapa.extT0 >= extTstart && aidapa.extT0*4 < extTstart*4+beta_w && i<nlist && ifakemap==fakemap.end()){
+				while( aidapa.extT0 >= extTstart && aidapa.extT0*4 < extTstart*4+beta_w && i<nlist && ifakemap==fakemap.end()){		//with veto
+				//while( aidapa.extT0 >= extTstart && aidapa.extT0*4 < extTstart*4+beta_w && i<nlist){						//without veto
 					if(aidapa.ion_flag==0){
 						if(fire_flag[aidapa.dssdNo[0]][1]==0 && aidapa.stripNo[0]>127) {fire_flag[aidapa.dssdNo[0]][1]=1;}
 						else if(fire_flag[aidapa.dssdNo[0]][0]==0 && aidapa.stripNo[0]<127) {fire_flag[aidapa.dssdNo[0]][0]=1;}
@@ -467,7 +528,7 @@ int main( int argv, char* argc[]){
 						ilast=i;
 					}
 					i++;
-					ifakemap=fakemap.find(i);
+					ifakemap=fakemap.find(i);												//with veto
 					if(i<nlist) testi=aidapa.GetEntry(i);
 					if(testi==0){ cout<<"wrong entry input here "<<i<<"entry is not exist"<<endl; return -1;}
 
@@ -552,7 +613,7 @@ int main( int argv, char* argc[]){
 				}
 
 				beta->Fill();
-
+			}else i++;															//beam veto condition
 			}else i++;
 
 			indi++;

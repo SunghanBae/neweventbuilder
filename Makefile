@@ -11,8 +11,8 @@ CXX	= g++
 ROOTCFLAGS	= $(shell root-config --cflags)
 ROOTLIBS	= $(shell root-config --libs)
 ROOTGLIBS	= $(shell root-config --glibs)
-#TARTLIBS        = -L$(TARTSYS)/lib -lanacore -lanaroot -lanabrips -lanawinds -lanaloop -lanacore -L/usr/local/lib -lXMLParser
-INCLUDES	= -I$(ROOTSYS)/include
+TARTLIBS        = -L$(TARTSYS)/lib -lanacore -lanaroot -lanabrips -lanawinds -lanaloop -lanacore -L/usr/local/lib -lXMLParser
+INCLUDES	= -I$(ROOTSYS)/include -I$(TARTSYS)/include
 
 
 ifdef GO4_WIN32
@@ -20,7 +20,7 @@ ifdef GO4_WIN32
 endif
 
 newevent: eventbuilder.cpp AIDA_parsed.h
-	$(CXX) $< -fstack-protector-all -o $@ $(INCLUDES) $(ROOTLIBS) $(ROOTCFLAGS) $(ROOTGLIBS) 
+	$(CXX) $< -fstack-protector-all -o $@ $(INCLUDES) $(ROOTLIBS) $(ROOTCFLAGS) $(ROOTGLIBS) $(TARTLIBS) 
 
 
 clean: 
