@@ -23,11 +23,12 @@
 #include <TArtTOF.hh>
 #include <TArtRIPS.hh>
 #include <TArtBeam.hh>
+//#include "eurica.h"
 
 // Fixed size dimensions of array or collections stored in the TTree if any.
 // const Int_t kMaxEventInfo = 1;
-//   const Int_t kMax_n_ion  = 1000;
-//   const Int_t kMax_n_gamma  = 1000;
+   const Int_t kMax_n_ion  = 1000;
+   const Int_t kMax_n_gamma  = 1000;
    const Int_t kMaxBigRIPSPPAC = 71;
    const Int_t kMaxBigRIPSPlastic = 10;
    const Int_t kMaxBigRIPSIC = 4;
@@ -98,7 +99,6 @@ public :
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
    virtual void     GetTsEntry(std::map <Long64_t, Long64_t> &mts);
-   virtual void     GetTsEntryBack(std::map <Long64_t, Long64_t> &mts);
 
 
 };
@@ -222,22 +222,6 @@ void BigRIPS_reco::GetTsEntry(std::map<Long64_t,Long64_t> &mts)
    std::cout<<nenties<<"nenties in BigRIPS_reco "<<std::endl;
    Long64_t nbytes = 0, nb =0;
    for(Long64_t jentry = 0;jentry < nenties ;jentry++)
-   {
-      Long64_t ientry = LoadTree(jentry);
-      if(ientry<0) break;
-      nb = fChain->GetEntry(jentry); nbytes += nb;
-      ts = timestamp;
-      if(jentry%100000 ==0 && ts > 0) std::cout<<"jentry = "<<jentry<<" brips ts = "<<timestamp<<std::endl;
-      if(ts != 0) mts.insert(std::pair<Long64_t,Long64_t> (ts,jentry));
-   }
-}
-
-void BigRIPS_reco::GetTsEntryBack(std::map<Long64_t,Long64_t> &mts)
-{  Long64_t ts;
-   Long64_t nenties = fChain->GetEntriesFast();
-   std::cout<<nenties-3300000<<"Half nenties in BigRIPS_reco "<<std::endl;
-   Long64_t nbytes = 0, nb =0;
-   for(Long64_t jentry = 0 ;jentry < nenties ;jentry++)
    {
       Long64_t ientry = LoadTree(jentry);
       if(ientry<0) break;

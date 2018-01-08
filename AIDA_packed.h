@@ -36,6 +36,7 @@ public :
    Int_t           rangeType[16];   //[multinum]
    Int_t           adcData[16];   //[multinum]
    Int_t           dssdNo[16];   //[multinum]
+   Double_t		   adcData_off[16];
 
    // List of branches
    TBranch        *b_t0;   //!
@@ -51,6 +52,7 @@ public :
    TBranch        *b_chNo;   //!
    TBranch        *b_rangeType;   //!
    TBranch        *b_adcData;   //!
+   TBranch        *b_adcData_off;   //!
    TBranch        *b_dssdNo;   //!
 
    AIDA_packed(char* filename, TTree *tree=0);
@@ -137,6 +139,7 @@ void AIDA_packed::Init(TTree *tree)
    fChain->SetBranchAddress("chNo", chNo, &b_chNo);
    fChain->SetBranchAddress("rangeType", rangeType, &b_rangeType);
    fChain->SetBranchAddress("adcData", adcData, &b_adcData);
+   fChain->SetBranchAddress("adcData_off", adcData_off, &b_adcData_off);
    fChain->SetBranchAddress("dssdNo", dssdNo, &b_dssdNo);
    Notify();
 }
